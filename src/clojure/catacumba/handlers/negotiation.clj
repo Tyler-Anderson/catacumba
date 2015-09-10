@@ -36,36 +36,52 @@
   3. Cache (transparent negotiation).
 
   This module implements the agent-driven negotiation."
+  (:require [catacumba.impl.serializers :cs])
   (:import ratpack.http.Request
            ratpack.http.TypedData
            ratpack.handling.Context))
 
-;; (definterface IMediaType
-;;   (accepts [
+(def ^:private
+  +default-types+ [:application/json
+                   :application/transit+json
+                   :application/transit+msgpack])
 
-(deftype MediaType [type subtype params q]
-  Object
-  (equals [it other]
-    (and (instance? MediaType other)
-         (= (hash it)
-            (hash other))))
+(deftype Response [data contentype]
+  Renderable
+  (render [_ ^Content ctx]
+    ))
 
-  (toString [_]
-    (with-out-str
-      (print (str (name type) "/" (name subtype)))
-      (run! (fn [[key value]]
-              (print (str ":" key "=" value)))
-            (into [] params))))
+(defn response
+  "Return a response"
+  [context data]
+  (let [contentype (::type context)]
+    (Response. data contenttype)))
 
-  clojure.lang.IHashEq
-  (hasheq [it]
-    (reduce #(hash-combine %1 %2) (hash type) [subtype params q]))
+(defmulti serializer
+  (fn [type data] type))
 
-;; (defn content-negotiation
-;;   ([]
-;;    (content-negotiation serializer))
-;;   ([serializer]
-;;    {:pre [(instance? clojure.lang.MultiFn serializer)]}
-;;    (let [content-types (set (keys (.getMethodTable foo)))]
-;;      (fn [context]
+(defmethod serializer :application/json
+  [_ data]
+  (cs/encode :json data))
+
+(defmethod serializer :application/transit+msgpack
+  [_ data]
+  (cs/encode :transit+msgpack data))
+
+(defmethod serializer :application/transit+json
+  [_ data]
+  (cs/encode :transit+json data))
+
+(defn content-negotiation
+  "Add a content negotiation and automatic data serialization
+  to the catacumba handlers chain."
+  ([] (content-negotiation {}))
+  ([{:keys [types serializerfn] :or [types +default-types+
+                                     serializerfn serializer]}]
+   (fn [context]
+     (let [incoming-types (parse-content-types context)
+           matching (match-content-types incoming-types types)]
+       (if matching
+         (ct/delegate {::type matching})
+         (http/not-acceptable ""))))))
 
