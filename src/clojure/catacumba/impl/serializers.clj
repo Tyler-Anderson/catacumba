@@ -28,60 +28,64 @@
             [cognitect.transit :as transit]
             [buddy.core.codecs :as codecs])
   (:import java.io.ByteArrayInputStream
-           java.io.ByteArrayOutpuStream))
+           java.io.ByteArrayOutputStream))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Public Api
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defmulti encode
-  "Encode data."
-  (fn [type data] type))
-
-(defmulti decode
-  "Decode data."
-  (fn [type data] type))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Implementation
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn- str->bytes
   [data]
   (.getBytes data "UTF-8"))
 
+(defn bytes->str
+  [data]
+  (String. data "UTF-8"))
+
+(defmulti encode
+  "Encode data."
+  (fn [data type] type))
+
+(defmulti decode
+  "Decode data."
+  (fn [data type] type))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Implementation
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defmethod encode :json
-  [_ data]
+  [data _]
   (-> (json/encode data)
       (codecs/str->bytes)))
 
 (defmethod decode :json
-  [_ data]
+  [data _]
   (-> (codecs/bytes->str data)
       (json/decode true)))
 
 (defmethod encode :transit+json
-  [_ data]
-  (with-open [output (ByteArrayOutputStream.)]
+  [data _]
+  (with-open [out (ByteArrayOutputStream.)]
     (let [w (transit/writer out :json)]
       (transit/write w data)
       (.toByteArray out))))
 
 (defmethod encode :transit+msgpack
-  [_ data]
-  (with-open [output (ByteArrayOutputStream.)]
+  [data _]
+  (with-open [out (ByteArrayOutputStream.)]
     (let [w (transit/writer out :msgpack)]
       (transit/write w data)
       (.toByteArray out))))
 
 (defmethod decode :transit+json
-  [_ data]
+  [data _]
   (with-open [input (ByteArrayInputStream. data)]
     (let [reader (transit/reader input :json)]
       (transit/read reader))))
 
 (defmethod decode :transit+msgpack
-  [_ data]
+  [data _]
   (with-open [input (ByteArrayInputStream. data)]
     (let [reader (transit/reader input :msgpack)]
       (transit/read reader))))
