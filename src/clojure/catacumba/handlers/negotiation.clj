@@ -25,14 +25,14 @@
 (ns catacumba.handlers.negotiation
   "Content negotiation.
 
-  In the Hypertext Transfer Protocol (HTTP), content negotiation is the mechanism that is used,
-  when facing the ability to serve several equivalent contents for a given URI, to provide the best
-  suited one to the final user. The determination of the best suited content is made through one of
-  three mechanisms:
+  In the Hypertext Transfer Protocol (HTTP), content negotiation is the mechanism
+  that is used, when facing the ability to serve several equivalent contents for a
+  given URI, to provide the best suited one to the final user. The determination of
+  the best suited content is made through one of three mechanisms:
 
   1. Specific HTTP headers by the client (server-driven negotiation)
-  2. The 300 Multiple Choices or 406 Not Acceptable HTTP response codes by the server (agent-driven
-  negotiation)
+  2. The 300 Multiple Choices or 406 Not Acceptable HTTP response codes by the
+     server (agent-driven negotiation)
   3. Cache (transparent negotiation).
 
   This module implements the agent-driven negotiation."
